@@ -3,7 +3,7 @@ env:
     rcloneconfig: "ENCRYPTED[!713fd1558850e851c870166aa3bca0f65050e06d48b71105b04c5a304e7d297f003de5c221af6ebf2c8301abdf56b93e!]"
     tokentl: "ENCRYPTED[!563b5c0dadf7801ff9978b2930778e68b19c8d0802b669df6d30b004ba151418bafb7b001d594cfc4192fca1bda89082!]"
     idtl: -1002171624083
-    lunch: lunch nad_ginkgo-userdebug
+    lunch: lunch nad_ginkgo-user
     make: make nad
 
 task:
