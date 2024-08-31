@@ -74,4 +74,3 @@ task:
       - curl -s https://api.telegram.org/bot7502875437:AAHWCh1hQ9Wt8X3geAYSKk2T9mtRj8s9ehQ/sendMessage -d chat_id=-1002171624083 -d text="Uploading ccache...."
       - rclone copy ccache.tar.gz hk1:nusantara -P
       - curl -s https://api.telegram.org/bot7502875437:AAHWCh1hQ9Wt8X3geAYSKk2T9mtRj8s9ehQ/sendMessage -d chat_id=-1002171624083 -d text="Ccache Uploaded Successfully!"
-#
