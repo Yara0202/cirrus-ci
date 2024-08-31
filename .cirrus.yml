@@ -1,6 +1,6 @@
 env:
     credentials: "ENCRYPTED[!5677097f7022272446dbbec68b6c2ab2ceaca4d07845554b961965728d8a123c32e97e6cc64cd832a1bfbd4d0d2bafac!]"
-    rcloneconfig: "ENCRYPTED[!85d0b64e21f2d62dc7d915de295ae6c35b82d377690573fffca2a3b1a8dca970338aad3713f7dd28c492d0cc2572ca7b!]"
+    rcloneconfig: "ENCRYPTED[!e018bef276746b70ddaccd75934fecd55ef35650471970a68098141d038f3473c9230e43f2e87780734927e8fed19a14!]"
     tokentl: "ENCRYPTED[!938691fa14b75a377db327200828af13a5888bad958c20d1609fbb08409ff31553a0347b6963d28c3ed8463f0f4afc41!]"
     idtl: -1002171624083
     lunch: lunch qassa_ginkgo-userdebug
