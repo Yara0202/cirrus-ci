@@ -2,77 +2,142 @@ env:
     credentials: "ENCRYPTED[!4f83dca9a98003e49cc4a8b38aeb44eaefa9d6c8b1afb7f55248691a390b006e9f4c104c25951b5bbe5e6a58556e4f61!]"
     rcloneconfig: "ENCRYPTED[!46711e650c102b7763b91f869840ea01b1cbb71696e03853b357c74bd66c90b702fe263c5db81648389e07cc1abdf542!]"
     tokentl: "ENCRYPTED[!78df93af52b276deba904023576dbf45df5be7a833cb3a83509bcc6af9981f3a8882bf67dadc2ab4a786279a38f2e390!]"
-    idtl: 1002529476463
+    idtl: -1002529476463
     lunch: lunch lineage_ginkgo-userdebug
     make: mka bacon
 
 task:
-  name: "Setting Up, Syncing, Building and Uploading..."
+  name: "LineageOS Build for Ginkgo"
   timeout_in: 480m
   container:
-      image: inok2341/anu:latest
-      cpu: 8
-      memory: 32G
+    image: inok2341/anu:latest
+    cpu: 8
+    memory: 32G
+
+  on_error:
+    - mkdir -p ~/rom/out
+    - ERROR_LOG="$HOME/rom/out/error.log"
+    - echo "🛑 Task failed at $(date '+%Y-%m-%d %H:%M:%S')" >> "$ERROR_LOG"
+    - echo "Exit code: $?" >> "$ERROR_LOG"
+    - echo -e "\n⚠️ Last 15 lines of build log:" >> "$ERROR_LOG"
+    - tail -n 15 ~/rom/out/error.log >> "$ERROR_LOG" 2>/dev/null || echo "No build log found" >> "$ERROR_LOG"
+    - |
+      curl -s -X POST \
+        "https://api.telegram.org/bot$tokentl/sendDocument" \
+        -F document=@"$ERROR_LOG" \
+        -F chat_id="$idtl" \
+        -F caption="🚨 CRITICAL BUILD FAILURE 🚨%0A%0A📱 Device: ginkgo%0A⏱️ $(date '+%H:%M:%S')%0A❌ Error detected in build process"
 
   Build-Env-Setup_background_script:
-       - export DEBIAN_FRONTEND=noninteractive
-       - mkdir -p ~/.config/rclone
-       - echo "$rcloneconfig" > ~/.rclone.conf
-       - git config --global user.name "Wrdn28"
-       - git config --global user.email "ifloraxd@gmail.com"
-       - echo "$credentials" > ~/.git-credentials
-       - git config --global credential.helper store --file=~/.git-credentials
-       - mkdir -p ~/ccache
-       - rclone copy drive:lineage/ccache.tar.gz ~/ -P
-       - cd ~/
-       - time tar xf ccache.tar.gz
-       - cd ~/
-
-  Storage-Checker_background_script:
-      - df -h
-      - lsblk
-      - ls -l -a -h
-      - ./w.sh
+    - export DEBIAN_FRONTEND=noninteractive
+    - mkdir -p ~/.config/rclone ~/rom/out
+    - echo "$rcloneconfig" > ~/.rclone.conf
+    - git config --global user.name "Wrdn28"
+    - git config --global user.email "ifloraxd@gmail.com"
+    - echo "$credentials" > ~/.git-credentials
+    - git config --global credential.helper "store --file=~/.git-credentials"
+    - mkdir -p ~/ccache
+    - rclone copy drive:lineage/ccache.tar.gz ~/ -P || (echo "Failed to download ccache" >> ~/rom/out/error.log && exit 1)
+    - cd ~/
+    - time tar xf ccache.tar.gz || (echo "Failed to extract ccache" >> ~/rom/out/error.log && exit 1)
 
   Sync_script:
-      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=-$idtl -d text="Start sync lineage Source"
-      - mkdir -p ~/rom
-      - cd ~/rom
-      - sudo curl --create-dirs -L -o /usr/local/bin/repoo -O -L https://storage.googleapis.com/git-repo-downloads/repo
-      - sudo chmod a+rx /usr/local/bin/repoo
-      - repo init -q --no-repo-verify --depth=1 -u https://github.com/LineageOS-Revived/android.git -b lineage-17.1 -g default,-mips,-darwin,-notdefault
-      - rm -rf .repo/repo && git clone https://gerrit.googlesource.com/git-repo .repo/repo
-      - sed -i 's|ssh://git@github.com|https://github.com|g' .repo/manifests/snippets/revived.xml
-      - repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
-      - git clone https://github.com/Wrdn28/android_device_xiaomi_ginkgo -b 10 device/xiaomi/ginkgo
-      - git clone https://github.com/andrraa/vendor_xiaomi_ginkgo -b 10 vendor/xiaomi/ginkgo --depth=1
-      - git clone https://github.com/Wrdn28/hyper_kernel_ginkgo -b A10 kernel/xiaomi/ginkgo --depth=1
-      - git clone https://github.com/andrraa/android_vendor_miuicamera -b 10 vendor/miuicamera
-      - rm -rf hardware/qcom-caf/sm8150/audio && rm -rf hardware/qcom-caf/sm8150/display && rm -rf hardware/qcom-caf/sm8150/media
-      - git clone https://github.com/Nusantara-ROM/android_hardware_qcom_display -b 10-sm8150 hardware/qcom-caf/sm8150/display
-      - git clone https://github.com/Nusantara-ROM/android_hardware_qcom_media -b 10-sm8150 hardware/qcom-caf/sm8150/media
-      - git clone https://github.com/Nusantara-ROM/android_hardware_qcom_audio -b 10-sm8150 hardware/qcom-caf/sm8150/audio 
-      - git clone https://github.com/kdrag0n/proton-clang -b master prebuilts/clang/host/linux-x86/proton-clang --depth=1
-      - git clone https://github.com/Wrdn28/keys -b A10 vendor/lineage/signing
-      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=-$idtl -d text="Sync Completed!"
+    - mkdir -p ~/rom
+    - |
+      curl -s -X POST \
+        "https://api.telegram.org/bot$tokentl/sendMessage" \
+        -d chat_id="$idtl" \
+        -d parse_mode="HTML" \
+        -d text="<b>🚀 Starting Sync</b>%0A%0A📌 LineageOS 17.1 for Ginkgo"
+    
+    - cd ~/rom
+    - sudo curl --create-dirs -L -o /usr/local/bin/repo -O -L https://storage.googleapis.com/git-repo-downloads/repo
+    - sudo chmod a+rx /usr/local/bin/repo
+    - repo init -q --no-repo-verify --depth=1 -u https://github.com/Yara0202/crdroid -b 10.0 -g default,-mips,-darwin,-notdefault
+    - rm -rf .repo/repo && git clone https://gerrit.googlesource.com/git-repo .repo/repo
+    - sed -i 's|ssh://git@github.com|https://github.com|g' .repo/manifests/snippets/revived.xml
+    - repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+    - git clone https://github.com/Wrdn28/android_device_xiaomi_ginkgo -b 10 device/xiaomi/ginkgo
+    - git clone https://github.com/andrraa/android_vendor_xiaomi_ginkgo -b 10 vendor/xiaomi/ginkgo --depth=1
+    - git clone https://github.com/Wrdn28/hyper_kernel_ginkgo -b A10 kernel/xiaomi/ginkgo --depth=1
+    - git clone https://github.com/andrraa/android_vendor_miuicamera -b 10 vendor/miuicamera
+    - rm -rf hardware/qcom-caf/sm8150/{audio,display,media}
+    - git clone https://github.com/Nusantara-ROM/android_hardware_qcom_display -b 10-sm8150 hardware/qcom-caf/sm8150/display
+    - git clone https://github.com/Nusantara-ROM/android_hardware_qcom_media -b 10-sm8150 hardware/qcom-caf/sm8150/media
+    - git clone https://github.com/Nusantara-ROM/android_hardware_qcom_audio -b 10-sm8150 hardware/qcom-caf/sm8150/audio
+    - git clone https://github.com/kdrag0n/proton-clang -b master prebuilts/clang/host/linux-x86/proton-clang --depth=1
+    - git clone https://github.com/Wrdn28/keys -b A10 vendor/lineage/signing
+    - git clone https://gitea.com/Hirokixd/android_external_chromium-webview_prebuilt external/chromium-webview/prebuilt --depth=1
+    - |
+      curl -s -X POST \
+        "https://api.telegram.org/bot$tokentl/sendMessage" \
+        -d chat_id="$idtl" \
+        -d parse_mode="HTML" \
+        -d text="<b>✅ Sync Completed</b>%0A%0AAll repositories synced successfully!"
 
   Build_script:
-      - export BUILD_USERNAME="Hirokixd"
-      - export BUILD_HOSTNAME="HKprjkt"
-      - export KBUILD_BUILD_USER="Hirokixd"
-      - export KBUILD_BUILD_HOST="HKprjkt"
-#      - export WITH_GAPPS=true
-      - sudo ln -sf /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
-      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=-$idtl -d text="Build lineage for Ginkgo Started!"
-      - ./collect.sh
-#      - ./final.sh
-      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=-$idtl -d text="Build $(cd ~/rom/out/target/product/ginkgo/ && ls lineage*.zip) Completed!"
+    - |
+      export BUILD_USERNAME="Hirokixd"
+      export BUILD_HOSTNAME="HKprjkt"
+      export KBUILD_BUILD_USER="Hirokixd"
+      export KBUILD_BUILD_HOST="HKprjkt"
+      sudo ln -sf /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
+      mkdir -p ~/rom/out
+      
+      curl -s -X POST \
+        "https://api.telegram.org/bot$tokentl/sendMessage" \
+        -d chat_id="$idtl" \
+        -d parse_mode="HTML" \
+        -d text="<b>🏗️ Build Started</b>%0A%0A⚙️ User: <code>$BUILD_USERNAME</code> | Host: <code>$BUILD_HOSTNAME</code>"
+      
+      {
+        echo "==== BUILD STARTED ===="
+        echo "Time: $(date '+%Y-%m-%d %H:%M:%S')"
+        ./collect.sh
+        BUILD_EXIT_CODE=$?
+        echo "==== BUILD FINISHED ===="
+        echo "Exit Code: $BUILD_EXIT_CODE"
+        echo "Time: $(date '+%Y-%m-%d %H:%M:%S')"
+      } | tee ~/rom/out/error.log
+      
+      grep -iE "failed|error|crash|fail|undefined|missing|segfault|exception" ~/rom/out/error.log > ~/rom/out/error.log || true
+      
+      if [ -s ~/rom/out/error.log ] || [ $BUILD_EXIT_CODE -ne 0 ]; then
+        # Ambil 15 baris terakhir error
+        ERROR_SUMMARY=$(tail -n 15 ~/rom/out/error.log 2>/dev/null || echo "No detailed error message")
+        
+        curl -s -X POST \
+          "https://api.telegram.org/bot$tokentl/sendMessage" \
+          -d chat_id="$idtl" \
+          -d parse_mode="HTML" \
+          -d text="<b>❌ BUILD FAILED</b>%0A%0A🕒 <code>$(date '+%H:%M:%S')</code>%0A🔧 Exit Code: <code>$BUILD_EXIT_CODE</code>%0A%0A<pre>${ERROR_SUMMARY}</pre>"
+        
+        curl -s -X POST \
+          "https://api.telegram.org/bot$tokentl/sendDocument" \
+          -F document=@"~/rom/out/error.log" \
+          -F chat_id="$idtl" \
+          -F caption="📄 Full Build Log"
+        
+        exit 1
+      else
+        cd ~/rom/out/target/product/ginkgo/
+        zipname=$(ls lineage*.zip 2>/dev/null || echo "No ZIP Found")
+        filesize=$(du -sh lineage*.zip 2>/dev/null | cut -f1 || echo "0B")
+        
+        curl -s -X POST \
+          "https://api.telegram.org/bot$tokentl/sendMessage" \
+          -d chat_id="$idtl" \
+          -d parse_mode="HTML" \
+          -d text="<b>🎉 Build Successful!</b>%0A%0A📦 <code>$zipname</code>%0A📏 Size: <code>$filesize</code>%0A🕒 <code>$(date '+%H:%M:%S')</code>"
+      fi
 
   Upload_script:
-      - ./upload.sh
-      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=-$idtl -d text="Compres ccache"
-      - ./ziping.sh
-      - cd ~/
-      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=-$idtl -d text="Uploading ccache...."
-      - rclone copy ccache.tar.gz drive:lineage -P
-      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=-$idtl -d text="Ccache Uploaded Successfully!"
+    - ./upload.sh 2>&1 | tee ~/rom/out/upload.log
+    - ./ziping.sh 2>&1 | tee -a ~/rom/out/upload.log
+    - rclone copy ccache.tar.gz drive:lineage -P 2>&1 | tee -a ~/rom/out/upload.log
+    - |
+      curl -s -X POST \
+        "https://api.telegram.org/bot$tokentl/sendMessage" \
+        -d chat_id="$idtl" \
+        -d parse_mode="HTML" \
+        -d text="<b>📤 Upload Complete</b>%0A✅ ROM & CCACHE Uploaded Successfully%0A⏱️ $(date '+%H:%M:%S')"
