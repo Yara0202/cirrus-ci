@@ -1,10 +1,10 @@
 env:
-    credentials: "ENCRYPTED[!5677097f7022272446dbbec68b6c2ab2ceaca4d07845554b961965728d8a123c32e97e6cc64cd832a1bfbd4d0d2bafac!]"
-    rcloneconfig: "ENCRYPTED[!e018bef276746b70ddaccd75934fecd55ef35650471970a68098141d038f3473c9230e43f2e87780734927e8fed19a14!]"
-    tokentl: "ENCRYPTED[!563b5c0dadf7801ff9978b2930778e68b19c8d0802b669df6d30b004ba151418bafb7b001d594cfc4192fca1bda89082!]"
-    idtl: -1002171624083
-    lunch: lunch qassa_ginkgo-userdebug
-    make: make qassa
+    credentials: "ENCRYPTED[!4f83dca9a98003e49cc4a8b38aeb44eaefa9d6c8b1afb7f55248691a390b006e9f4c104c25951b5bbe5e6a58556e4f61!]"
+    rcloneconfig: "ENCRYPTED[!46711e650c102b7763b91f869840ea01b1cbb71696e03853b357c74bd66c90b702fe263c5db81648389e07cc1abdf542!]"
+    tokentl: "ENCRYPTED[!78df93af52b276deba904023576dbf45df5be7a833cb3a83509bcc6af9981f3a8882bf67dadc2ab4a786279a38f2e390!]"
+    idtl: 1002529476463
+    lunch: lunch lineage_ginkgo-userdebug
+    make: mka bacon
 
 task:
   name: "Setting Up, Syncing, Building and Uploading..."
@@ -23,7 +23,7 @@ task:
        - echo "$credentials" > ~/.git-credentials
        - git config --global credential.helper store --file=~/.git-credentials
        - mkdir -p ~/ccache
-       - rclone copy hk:qassa/ccache.tar.gz ~/ -P
+       - rclone copy drive:lineage/ccache.tar.gz ~/ -P
        - cd ~/
        - time tar xf ccache.tar.gz
        - cd ~/
@@ -35,26 +35,26 @@ task:
       - ./w.sh
 
   Sync_script:
-      - curl -s https://api.telegram.org/bot7502875437:AAHWCh1hQ9Wt8X3geAYSKk2T9mtRj8s9ehQ/sendMessage -d chat_id=-1002171624083 -d text="Start sync qassa Source"
+      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=-$idtl -d text="Start sync lineage Source"
       - mkdir -p ~/rom
       - cd ~/rom
       - sudo curl --create-dirs -L -o /usr/local/bin/repoo -O -L https://storage.googleapis.com/git-repo-downloads/repo
       - sudo chmod a+rx /usr/local/bin/repoo
-      - repo init -q --no-repo-verify --depth=1 -u https://github.com/keepQASSA/manifest.git -b Q -g default,-mips,-darwin,-notdefault
+      - repo init -q --no-repo-verify --depth=1 -u https://github.com/LineageOS-Revived/android.git -b lineage-17.1 -g default,-mips,-darwin,-notdefault
       - rm -rf .repo/repo && git clone https://gerrit.googlesource.com/git-repo .repo/repo
-      - sed -i 's|ssh://git@github.com|https://github.com|g' .repo/manifests/snippets/qassa.xml
+      - sed -i 's|ssh://git@github.com|https://github.com|g' .repo/manifests/snippets/revived.xml
       - repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
-      - git clone https://github.com/Wrdn28/device_xiaomi_ginkgo-q -b qassa device/xiaomi/ginkgo
-      - git clone https://github.com/Wrdn28/vendor_xiaomi_ginkgo-q -b A10 vendor/xiaomi/ginkgo --depth=1
+      - git clone https://github.com/Wrdn28/android_device_xiaomi_ginkgo -b 10 device/xiaomi/ginkgo
+      - git clone https://github.com/andrraa/vendor_xiaomi_ginkgo -b 10 vendor/xiaomi/ginkgo --depth=1
       - git clone https://github.com/Wrdn28/hyper_kernel_ginkgo -b A10 kernel/xiaomi/ginkgo --depth=1
       - git clone https://github.com/andrraa/android_vendor_miuicamera -b 10 vendor/miuicamera
-      - git clone https://github.com/kdrag0n/proton-clang -b master prebuilts/clang/host/linux-x86/proton-clang --depth=1
       - rm -rf hardware/qcom-caf/sm8150/audio && rm -rf hardware/qcom-caf/sm8150/display && rm -rf hardware/qcom-caf/sm8150/media
       - git clone https://github.com/Nusantara-ROM/android_hardware_qcom_display -b 10-sm8150 hardware/qcom-caf/sm8150/display
       - git clone https://github.com/Nusantara-ROM/android_hardware_qcom_media -b 10-sm8150 hardware/qcom-caf/sm8150/media
       - git clone https://github.com/Nusantara-ROM/android_hardware_qcom_audio -b 10-sm8150 hardware/qcom-caf/sm8150/audio 
-      - sed -i 's| -u||g' vendor/qassa/config/branding.mk
-      - curl -s https://api.telegram.org/bot7502875437:AAHWCh1hQ9Wt8X3geAYSKk2T9mtRj8s9ehQ/sendMessage -d chat_id=-1002171624083 -d text="Sync Completed!"
+      - git clone https://github.com/kdrag0n/proton-clang -b master prebuilts/clang/host/linux-x86/proton-clang --depth=1
+      - git clone https://github.com/Wrdn28/keys -b A10 vendor/lineage/signing
+      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=-$idtl -d text="Sync Completed!"
 
   Build_script:
       - export BUILD_USERNAME="Hirokixd"
@@ -63,16 +63,16 @@ task:
       - export KBUILD_BUILD_HOST="HKprjkt"
 #      - export WITH_GAPPS=true
       - sudo ln -sf /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
-      - curl -s https://api.telegram.org/bot7502875437:AAHWCh1hQ9Wt8X3geAYSKk2T9mtRj8s9ehQ/sendMessage -d chat_id=-1002171624083 -d text="Build Qassa for Ginkgo Started!"
+      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=-$idtl -d text="Build lineage for Ginkgo Started!"
       - ./collect.sh
 #      - ./final.sh
-      - curl -s https://api.telegram.org/bot7502875437:AAHWCh1hQ9Wt8X3geAYSKk2T9mtRj8s9ehQ/sendMessage -d chat_id=-1002171624083 -d text="Build $(cd ~/rom/out/target/product/ginkgo/ && ls Qassa*.zip) Completed!"
+      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=-$idtl -d text="Build $(cd ~/rom/out/target/product/ginkgo/ && ls lineage*.zip) Completed!"
 
   Upload_script:
       - ./upload.sh
-      - curl -s https://api.telegram.org/bot7502875437:AAHWCh1hQ9Wt8X3geAYSKk2T9mtRj8s9ehQ/sendMessage -d chat_id=-1002171624083 -d text="Compres ccache"
+      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=-$idtl -d text="Compres ccache"
       - ./ziping.sh
       - cd ~/
-      - curl -s https://api.telegram.org/bot7502875437:AAHWCh1hQ9Wt8X3geAYSKk2T9mtRj8s9ehQ/sendMessage -d chat_id=-1002171624083 -d text="Uploading ccache...."
-      - rclone copy ccache.tar.gz hk:qassa -P
-      - curl -s https://api.telegram.org/bot7502875437:AAHWCh1hQ9Wt8X3geAYSKk2T9mtRj8s9ehQ/sendMessage -d chat_id=-1002171624083 -d text="Ccache Uploaded Successfully!"
+      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=-$idtl -d text="Uploading ccache...."
+      - rclone copy ccache.tar.gz drive:lineage -P
+      - curl -s https://api.telegram.org/bot$tokentl/sendMessage -d chat_id=-$idtl -d text="Ccache Uploaded Successfully!"
