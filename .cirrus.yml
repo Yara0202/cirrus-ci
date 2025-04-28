@@ -53,7 +53,7 @@ task:
     - cd ~/rom
     - sudo curl --create-dirs -L -o /usr/local/bin/repo -O -L https://storage.googleapis.com/git-repo-downloads/repo
     - sudo chmod a+rx /usr/local/bin/repo
-    - repo init -q --no-repo-verify --depth=1 -u https://github.com/Yara0202/crdroid -b 10.0 -g default,-mips,-darwin,-notdefault
+    - repo init -q --no-repo-verify --depth=1 -u https://github.com/Yara0202/android -b lineage-17.1 -g default,-mips,-darwin,-notdefault
     - rm -rf .repo/repo && git clone https://gerrit.googlesource.com/git-repo .repo/repo
     - sed -i 's|ssh://git@github.com|https://github.com|g' .repo/manifests/snippets/revived.xml
     - repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
